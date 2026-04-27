@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Editar {{ product.name }} — Price Monitor{% endblock %}
+
+{% block content %}
+<a href="/product/{{ product.id }}" class="back-link">← Voltar</a>
+
+<h1>Editar Produto</h1>
+<p class="subtitle">Altera o nome ou o preço objetivo.</p>
+
+{% if error %}
+<div class="error-msg">⚠️ {{ error }}</div>
+{% endif %}
+
+<div class="card" style="max-width:520px;">
+  <form method="POST">
+    <div class="form-group">
+      <label>Nome do produto</label>
+      <input type="text" name="name" value="{{ product.name }}" required>
+    </div>
+    <div class="form-group">
+      <label>URL do anúncio</label>
+      <input type="text" value="{{ product.url }}" disabled style="opacity:0.5;cursor:not-allowed;">
+      <div style="font-size:11px;color:#6b7280;margin-top:6px;">O URL não pode ser alterado. Apaga e adiciona novamente se precisares.</div>
+    </div>
+    <div class="form-group">
+      <label>Preço objetivo (€)</label>
+      <input type="number" name="target_price" value="{{ product.target_price }}" step="0.01" required>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="submit" class="btn btn-primary" style="flex:1;padding:12px;">Guardar Alterações</button>
+      <a href="/product/{{ product.id }}" class="btn btn-ghost" style="padding:12px 20px;">Cancelar</a>
+    </div>
+  </form>
+</div>

@@ -91,3 +91,23 @@ def get_price_history(product_id: int) -> list:
             (product_id,)
         ).fetchall()
     return [{"price": r[0], "title": r[1], "checked_at": r[2]} for r in rows]
+
+
+def update_product(product_id: int, name: str, target_price: float):
+    """Atualiza o nome e preço objetivo de um produto."""
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE products SET name = ?, target_price = ? WHERE id = ?",
+            (name, target_price, product_id)
+        )
+        conn.commit()
+    print(f"[DB] Produto {product_id} atualizado.")
+
+
+def delete_product(product_id: int):
+    """Remove um produto e todo o seu histórico."""
+    with get_connection() as conn:
+        conn.execute("DELETE FROM price_history WHERE product_id = ?", (product_id,))
+        conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
+        conn.commit()
+    print(f"[DB] Produto {product_id} removido.")

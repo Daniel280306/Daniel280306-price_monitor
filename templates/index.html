@@ -37,8 +37,8 @@
       {% if p.last_price %}
       <div class="price-item">
         <label>Diferença</label>
-        <div style="font-size:22px;font-weight:700;color:{% if p.status == 'below' %}#f87171{% else %}#4ade80{% endif %}">
-          {% set diff = p.last_price - p.target_price %}
+        {% set diff = p.last_price - p.target_price %}
+        <div style="font-size:22px;font-weight:700;color:{% if diff <= 0 %}#f87171{% else %}#4ade80{% endif %}">
           {% if diff > 0 %}+{% endif %}{{ "%.0f"|format(diff) }}€
         </div>
       </div>
@@ -47,8 +47,13 @@
 
     <div class="card-actions">
       <a href="/product/{{ p.id }}" class="btn btn-primary">Ver Histórico</a>
-      <a href="/check/{{ p.id }}" class="btn btn-ghost">🔄 Verificar Agora</a>
-      <a href="{{ p.url }}" target="_blank" class="btn btn-ghost">↗ Ver Anúncio</a>
+      <a href="/check/{{ p.id }}" class="btn btn-ghost">🔄 Verificar</a>
+      <a href="/edit/{{ p.id }}" class="btn btn-ghost">✏️ Editar</a>
+      <form method="POST" action="/delete/{{ p.id }}" style="display:inline;"
+            onsubmit="return confirm('Tens a certeza que queres apagar {{ p.name }}?')">
+        <button type="submit" class="btn btn-ghost" style="color:#f87171;border-color:#f8717133;">🗑️ Apagar</button>
+      </form>
+      <a href="{{ p.url }}" target="_blank" class="btn btn-ghost">↗ Anúncio</a>
     </div>
   </div>
   {% endfor %}
