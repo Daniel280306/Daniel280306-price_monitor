@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} — Price Monitor{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">← Voltar ao Dashboard</a>
+
+<h1>{{ product.name }}</h1>
+<p class="subtitle">
+  <a href="{{ product.url }}" target="_blank" style="color:#00e5ff;">{{ product.url[:80] }}{% if product.url|length > 80 %}...{% endif %}</a>
+</p>
+
+<!-- Stats -->
+{% set last = history[0] if history else none %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Preço Atual</div>
+    <div class="stat-value">{% if last %}{{ last.price }}€{% else %}—{% endif %}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Objetivo</div>
+    <div class="stat-value" style="color:#94a3b8;">{{ product.target_price }}€</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Mínimo histórico</div>
+    <div class="stat-value" style="color:#4ade80;">
+      {% if history %}{{ history|map(attribute='price')|min }}€{% else %}—{% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Verificações</div>
+    <div class="stat-value">{{ history|length }}</div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-container">
+  <h2>Histórico de Preços</h2>
+  <canvas id="priceChart" height="80"></canvas>
+</div>
+
+<!-- History table -->
+{% if history %}
+<div class="card">
+  <h2>Registos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Preço</th>
+        <th>vs Objetivo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in history %}
+      <tr>
+        <td style="color:#94a3b8;">{{ h.checked_at[:16] }}</td>
+        <td style="font-weight:600;">{{ h.price }}€</td>
+        <td>
+          {% set diff = h.price - product.target_price %}
+          <span style="color:{% if diff <= 0 %}#f87171{% else %}#4ade80{% endif %}">
+            {% if diff > 0 %}+{% endif %}{{ "%.0f"|format(diff) }}€
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="icon">📊</div>
+  <h3>Sem histórico ainda</h3>
+  <p style="margin-bottom:24px;">Clica em "Verificar Agora" para obter o primeiro registo.</p>
+  <a href="/check/{{ product.id }}" class="btn btn-primary">🔄 Verificar Agora</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+fetch('/api/history/{{ product.id }}')
+  .then(r => r.json())
+  .then(data => {
+    if (!data.length) return;
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(d => d.date),
+        datasets: [
+          {
+            label: 'Preço',
+            data: data.map(d => d.price),
+            borderColor: '#00e5ff',
+            backgroundColor: 'rgba(0,229,255,0.08)',
+            borderWidth: 2,
+            pointBackgroundColor: '#00e5ff',
+            pointRadius: 4,
+            fill: true,
+            tension: 0.3,
+          },
+          {
+            label: 'Objetivo',
+            data: data.map(() => {{ product.target_price }}),
+            borderColor: '#f87171',
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#94a3b8' } },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}€`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#6b7280' }, grid: { color: '#1f1f30' } },
+          y: {
+            ticks: { color: '#6b7280', callback: v => v + '€' },
+            grid: { color: '#1f1f30' }
+          }
+        }
+      }
+    });
+  });
+{% endblock %}

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Price Monitor{% endblock %}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e8e8f0;
+      min-height: 100vh;
+    }
+
+    nav {
+      background: #1a1a2e;
+      border-bottom: 1px solid #2d2d4e;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: #00e5ff;
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: #fff; }
+
+    .nav-link {
+      background: #00e5ff;
+      color: #0f0f1a;
+      padding: 8px 18px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+
+    .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 32px; }
+
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2d2d4e;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: #00e5ff44; }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .product-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-above { background: #1f2d1f; color: #4ade80; border: 1px solid #4ade8033; }
+    .badge-below { background: #2d1f1f; color: #f87171; border: 1px solid #f8717133; }
+    .badge-unknown { background: #1f1f2d; color: #94a3b8; border: 1px solid #94a3b833; }
+
+    .price-row {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    .price-item label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .price-value { font-size: 22px; font-weight: 700; color: #00e5ff; }
+    .price-target { font-size: 22px; font-weight: 700; color: #94a3b8; }
+
+    .card-actions { display: flex; gap: 8px; }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      display: inline-block;
+    }
+
+    .btn-primary { background: #00e5ff; color: #0f0f1a; }
+    .btn-primary:hover { background: #fff; }
+    .btn-ghost { background: transparent; color: #6b7280; border: 1px solid #2d2d4e; }
+    .btn-ghost:hover { border-color: #00e5ff; color: #00e5ff; }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+      color: #6b7280;
+    }
+
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 20px; color: #e8e8f0; margin-bottom: 8px; }
+
+    /* Form */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+    .form-group input {
+      width: 100%;
+      background: #0f0f1a;
+      border: 1px solid #2d2d4e;
+      color: #e8e8f0;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-group input:focus { border-color: #00e5ff; }
+
+    .error-msg {
+      background: #2d1f1f;
+      border: 1px solid #f8717133;
+      color: #f87171;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    /* Chart */
+    .chart-container {
+      background: #1a1a2e;
+      border: 1px solid #2d2d4e;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* History table */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 12px;
+      border-bottom: 1px solid #2d2d4e;
+    }
+    td { padding: 12px; border-bottom: 1px solid #1f1f30; font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .back-link:hover { color: #00e5ff; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: #1a1a2e;
+      border: 1px solid #2d2d4e;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .stat-value { font-size: 26px; font-weight: 700; color: #00e5ff; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-logo">🔔 Price<span>Monitor</span></a>
+    <a href="/add" class="nav-link">+ Adicionar Produto</a>
+  </nav>
+
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <script>{% block scripts %}{% endblock %}</script>
+</body>
+</html>

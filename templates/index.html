@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Price Monitor — Dashboard{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+<p class="subtitle">{{ products|length }} produto(s) monitorizado(s)</p>
+
+{% if products %}
+  {% for p in products %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="product-name">{{ p.name }}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;">{{ p.url[:60] }}{% if p.url|length > 60 %}...{% endif %}</div>
+      </div>
+      {% if p.last_price is none %}
+        <span class="badge badge-unknown">Não verificado</span>
+      {% elif p.status == 'below' %}
+        <span class="badge badge-below">🔔 Abaixo do objetivo!</span>
+      {% else %}
+        <span class="badge badge-above">Acima do objetivo</span>
+      {% endif %}
+    </div>
+
+    <div class="price-row">
+      <div class="price-item">
+        <label>Preço Atual</label>
+        <div class="price-value">
+          {% if p.last_price %}{{ p.last_price }}€{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="price-item">
+        <label>Objetivo</label>
+        <div class="price-target">{{ p.target_price }}€</div>
+      </div>
+      {% if p.last_price %}
+      <div class="price-item">
+        <label>Diferença</label>
+        <div style="font-size:22px;font-weight:700;color:{% if p.status == 'below' %}#f87171{% else %}#4ade80{% endif %}">
+          {% set diff = p.last_price - p.target_price %}
+          {% if diff > 0 %}+{% endif %}{{ "%.0f"|format(diff) }}€
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card-actions">
+      <a href="/product/{{ p.id }}" class="btn btn-primary">Ver Histórico</a>
+      <a href="/check/{{ p.id }}" class="btn btn-ghost">🔄 Verificar Agora</a>
+      <a href="{{ p.url }}" target="_blank" class="btn btn-ghost">↗ Ver Anúncio</a>
+    </div>
+  </div>
+  {% endfor %}
+
+{% else %}
+  <div class="empty-state">
+    <div class="icon">📦</div>
+    <h3>Nenhum produto ainda</h3>
+    <p style="margin-bottom:24px;">Adiciona o primeiro produto para começar a monitorizar preços.</p>
+    <a href="/add" class="btn btn-primary">+ Adicionar Produto</a>
+  </div>
+{% endif %}
+{% endblock %}
