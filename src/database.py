@@ -150,3 +150,58 @@ def get_stats() -> dict:
         "below_target": below_target,
         "products": sorted(products_stats, key=lambda x: x["checks"], reverse=True),
     }
+
+
+# ── UTILIZADORES ──────────────────────────────────────────────────────────────
+
+def init_users_table():
+    """Cria a tabela de utilizadores se não existir."""
+    with get_connection() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT NOT NULL,
+                email      TEXT NOT NULL UNIQUE,
+                password   TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+
+def create_user(name: str, email: str, password_hash: str) -> bool:
+    """Cria um novo utilizador. Retorna False se o email já existe."""
+    try:
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+                (name, email, password_hash)
+            )
+            conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+
+def get_user_by_email(email: str) -> dict | None:
+    """Retorna um utilizador pelo email."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT id, name, email, password FROM users WHERE email = ?",
+            (email,)
+        ).fetchone()
+    if row:
+        return {"id": row[0], "name": row[1], "email": row[2], "password": row[3]}
+    return None
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    """Retorna um utilizador pelo ID."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT id, name, email FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+    if row:
+        return {"id": row[0], "name": row[1], "email": row[2]}
+    return None

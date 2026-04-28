@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Registo — Price Monitor{% endblock %}
+{% block content %}
+<div style="max-width:400px;margin:80px auto;">
+  <div style="text-align:center;margin-bottom:32px;">
+    <div style="font-size:48px;margin-bottom:12px;">🔔</div>
+    <h1 style="margin-bottom:4px;">Criar Conta</h1>
+    <p class="subtitle" style="margin:0;">Cria a tua conta para começar a monitorizar preços.</p>
+  </div>
+
+  {% if error %}<div class="error-msg">⚠️ {{ error }}</div>{% endif %}
+
+  <div class="card">
+    <form method="POST" action="/register">
+      <div class="form-group">
+        <label>Nome</label>
+        <input type="text" name="name" placeholder="Daniel Santos" autofocus required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="daniel@gmail.com" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Mínimo 6 caracteres" required>
+      </div>
+      <div class="form-group">
+        <label>Confirmar Password</label>
+        <input type="password" name="password_confirm" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">
+        Criar Conta →
+      </button>
+    </form>
+  </div>
+
+  <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
+    Já tens conta?
+    <a href="/login" style="color:var(--accent);text-decoration:none;">Entra aqui</a>
+  </p>
+</div>
+{% endblock %}

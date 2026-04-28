@@ -3,42 +3,83 @@ dashboard.py — Dashboard web para o Price Monitor
 Corre com: py dashboard.py
 Acede em: http://localhost:5000
 """
-import sys
-import os
+import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from functools import wraps
-from database import init_db, add_product, get_products, get_price_history, get_last_price, update_product, delete_product
+from database import (init_db, init_users_table, add_product, get_products,
+                      get_price_history, get_last_price, update_product,
+                      delete_product, create_user, get_user_by_email, get_user_by_id)
 from scraper import scrape_listing
+import bcrypt
 
 app = Flask(__name__)
-app.secret_key = "price_monitor_secret_2026"  # Muda isto para algo único!
+app.secret_key = "price_monitor_secret_2026_muda_isto"
 
-# ── PASSWORD ──────────────────────────────────────────────────────────────────
-DASHBOARD_PASSWORD = "admin123"  # Muda esta password!
 
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not session.get("logged_in"):
+        if not session.get("user_id"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated
 
 
+def current_user():
+    uid = session.get("user_id")
+    return get_user_by_id(uid) if uid else None
+
+
+app.jinja_env.globals["current_user"] = current_user
+
+
 # ── AUTH ──────────────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if session.get("logged_in"):
+    if session.get("user_id"):
         return redirect(url_for("index"))
     error = None
     if request.method == "POST":
-        if request.form.get("password") == DASHBOARD_PASSWORD:
-            session["logged_in"] = True
+        email    = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        user = get_user_by_email(email)
+        if user and bcrypt.checkpw(password.encode(), user["password"].encode()):
+            session["user_id"] = user["id"]
+            session["user_name"] = user["name"]
             return redirect(url_for("index"))
-        error = "Password incorreta. Tenta novamente."
+        error = "Email ou password incorretos."
     return render_template("login.html", error=error)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+    error = None
+    if request.method == "POST":
+        name     = request.form.get("name", "").strip()
+        email    = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm  = request.form.get("password_confirm", "")
+
+        if not name or not email or not password:
+            error = "Preenche todos os campos."
+        elif len(password) < 6:
+            error = "A password deve ter pelo menos 6 caracteres."
+        elif password != confirm:
+            error = "As passwords não coincidem."
+        else:
+            hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+            if create_user(name, email, hashed):
+                user = get_user_by_email(email)
+                session["user_id"] = user["id"]
+                session["user_name"] = user["name"]
+                return redirect(url_for("index"))
+            else:
+                error = "Este email já está registado."
+    return render_template("register.html", error=error)
 
 
 @app.route("/logout")
@@ -73,10 +114,7 @@ def product_detail(product_id):
 @login_required
 def api_history(product_id):
     history = get_price_history(product_id)
-    return jsonify([
-        {"date": h["checked_at"][:16], "price": h["price"]}
-        for h in reversed(history)
-    ])
+    return jsonify([{"date": h["checked_at"][:16], "price": h["price"]} for h in reversed(history)])
 
 
 @app.route("/add", methods=["GET", "POST"])
@@ -182,8 +220,7 @@ def export_all_csv():
 @login_required
 def stats():
     from database import get_stats
-    s = get_stats()
-    return render_template("stats.html", stats=s)
+    return render_template("stats.html", stats=get_stats())
 
 
 @app.route("/settings")
@@ -192,8 +229,7 @@ def settings():
     import importlib, sys as _sys
     if "config" in _sys.modules:
         importlib.reload(_sys.modules["config"])
-    from config import (EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER,
-                        CHECK_INTERVAL, SEND_DAILY_SUMMARY)
+    from config import (EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER, CHECK_INTERVAL, SEND_DAILY_SUMMARY)
     try:
         from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SEND_TELEGRAM_ALERTS
     except ImportError:
@@ -216,12 +252,9 @@ def update_config_file(updates: dict):
     with open(config_path, "r", encoding="utf-8") as f:
         content = f.read()
     for key, value in updates.items():
-        if isinstance(value, bool):
-            new_val = str(value)
-        elif isinstance(value, int):
-            new_val = str(value)
-        else:
-            new_val = f'"{value}"'
+        if isinstance(value, bool): new_val = str(value)
+        elif isinstance(value, int): new_val = str(value)
+        else: new_val = f'"{value}"'
         content = re.sub(rf'{key}\s*=.*', f'{key} = {new_val}', content)
     with open(config_path, "w", encoding="utf-8") as f:
         f.write(content)
@@ -231,12 +264,10 @@ def update_config_file(updates: dict):
 @login_required
 def settings_email():
     try:
-        update_config_file({
-            "EMAIL_SENDER": request.form["email_sender"],
-            "EMAIL_PASSWORD": request.form["email_password"],
-            "EMAIL_RECEIVER": request.form["email_receiver"],
-        })
-        return redirect(url_for("settings") + "?success=Configurações+de+email+guardadas!")
+        update_config_file({"EMAIL_SENDER": request.form["email_sender"],
+                            "EMAIL_PASSWORD": request.form["email_password"],
+                            "EMAIL_RECEIVER": request.form["email_receiver"]})
+        return redirect(url_for("settings") + "?success=Email+guardado!")
     except Exception as e:
         return redirect(url_for("settings") + f"?error={e}")
 
@@ -245,12 +276,10 @@ def settings_email():
 @login_required
 def settings_telegram():
     try:
-        update_config_file({
-            "TELEGRAM_TOKEN": request.form["telegram_token"],
-            "TELEGRAM_CHAT_ID": request.form["telegram_chat_id"],
-            "SEND_TELEGRAM_ALERTS": request.form["send_telegram"] == "true",
-        })
-        return redirect(url_for("settings") + "?success=Configurações+de+Telegram+guardadas!")
+        update_config_file({"TELEGRAM_TOKEN": request.form["telegram_token"],
+                            "TELEGRAM_CHAT_ID": request.form["telegram_chat_id"],
+                            "SEND_TELEGRAM_ALERTS": request.form["send_telegram"] == "true"})
+        return redirect(url_for("settings") + "?success=Telegram+guardado!")
     except Exception as e:
         return redirect(url_for("settings") + f"?error={e}")
 
@@ -259,11 +288,9 @@ def settings_telegram():
 @login_required
 def settings_monitor():
     try:
-        update_config_file({
-            "CHECK_INTERVAL": int(request.form["check_interval"]),
-            "SEND_DAILY_SUMMARY": request.form["send_daily"] == "true",
-        })
-        return redirect(url_for("settings") + "?success=Configurações+do+monitor+guardadas!")
+        update_config_file({"CHECK_INTERVAL": int(request.form["check_interval"]),
+                            "SEND_DAILY_SUMMARY": request.form["send_daily"] == "true"})
+        return redirect(url_for("settings") + "?success=Monitor+guardado!")
     except Exception as e:
         return redirect(url_for("settings") + f"?error={e}")
 
@@ -285,8 +312,8 @@ def test_telegram():
     try:
         from telegram_notifier import send_telegram
         from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-        send_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, "🧪 <b>Teste Price Monitor</b> — Telegram ligado!")
-        return redirect(url_for("settings") + "?success=Mensagem+de+teste+enviada+no+Telegram!")
+        send_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, "🧪 <b>Teste Price Monitor</b> — OK!")
+        return redirect(url_for("settings") + "?success=Telegram+OK!")
     except Exception as e:
         return redirect(url_for("settings") + f"?error={e}")
 
@@ -295,7 +322,7 @@ if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
     init_db()
+    init_users_table()
     print("\n🚀 Dashboard iniciado!")
-    print("   Acede em: http://localhost:5000")
-    print(f"   Password: {DASHBOARD_PASSWORD}\n")
+    print("   Acede em: http://localhost:5000\n")
     app.run(debug=True)

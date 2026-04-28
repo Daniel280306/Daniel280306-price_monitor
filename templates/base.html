@@ -205,7 +205,8 @@
         <button class="theme-btn" id="btn-light" onclick="setTheme('light')">☀️</button>
       </div>
       <a href="/add" class="nav-link">+ Produto</a>
-      <a href="/logout" style="color:var(--muted);text-decoration:none;font-size:13px;" title="Sair">🚪</a>
+      {% if current_user() %}<span style="font-size:13px;color:var(--muted);">👤 {{ current_user().name }}</span>{% endif %}
+      <a href="/logout" style="color:var(--muted);text-decoration:none;font-size:13px;" title="Sair">🚪 Sair</a>
     </div>
   </nav>
 
