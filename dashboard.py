@@ -147,12 +147,6 @@ def stats():
     return render_template("stats.html", stats=s)
 
 
-if __name__ == "__main__":
-    init_db()
-    print("\n🚀 Dashboard iniciado!")
-    print("   Acede em: http://localhost:5000\n")
-    app.run(debug=True)
-
 
 @app.route("/settings")
 def settings():
@@ -251,3 +245,13 @@ def test_telegram():
         return redirect(url_for("settings") + "?success=Mensagem+de+teste+enviada+no+Telegram!")
     except Exception as e:
         return redirect(url_for("settings") + f"?error={e}")
+
+
+
+if __name__ == "__main__":
+    init_db()
+    print("\n🚀 Dashboard iniciado!")
+    print("   Acede em: http://localhost:5000\n")
+    app.run(debug=True)
+
+
