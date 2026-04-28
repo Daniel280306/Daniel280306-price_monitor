@@ -10,7 +10,8 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from functools import wraps
 from database import (init_db, init_users_table, add_product, get_products,
                       get_price_history, get_last_price, update_product,
-                      delete_product, create_user, get_user_by_email, get_user_by_id)
+                      delete_product, create_user, get_user_by_email, get_user_by_id,
+                      get_product_owner)
 from scraper import scrape_listing
 import bcrypt
 
@@ -33,6 +34,13 @@ def current_user():
 
 
 app.jinja_env.globals["current_user"] = current_user
+
+def owns_product(product_id: int) -> bool:
+    """Verifica se o utilizador atual é dono do produto."""
+    owner = get_product_owner(product_id)
+    return owner == session.get("user_id")
+
+
 
 
 # ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -92,7 +100,7 @@ def logout():
 @app.route("/")
 @login_required
 def index():
-    products = get_products()
+    products = get_products(user_id=session.get("user_id"))
     for p in products:
         p["last_price"] = get_last_price(p["id"])
         p["status"] = "below" if p["last_price"] and p["last_price"] <= p["target_price"] else "above"
@@ -102,7 +110,9 @@ def index():
 @app.route("/product/<int:product_id>")
 @login_required
 def product_detail(product_id):
-    products = get_products()
+    if not owns_product(product_id):
+        return redirect(url_for("index"))
+    products = get_products(user_id=session.get("user_id"))
     product = next((p for p in products if p["id"] == product_id), None)
     if not product:
         return redirect(url_for("index"))
@@ -129,7 +139,7 @@ def add():
             error = "Preenche todos os campos."
         else:
             try:
-                add_product(name, url, float(target_price))
+                add_product(name, url, float(target_price), user_id=session.get("user_id"))
                 return redirect(url_for("index"))
             except ValueError:
                 error = "Preço inválido."
@@ -139,7 +149,7 @@ def add():
 @app.route("/edit/<int:product_id>", methods=["GET", "POST"])
 @login_required
 def edit(product_id):
-    products = get_products()
+    products = get_products(user_id=session.get("user_id"))
     product = next((p for p in products if p["id"] == product_id), None)
     if not product:
         return redirect(url_for("index"))
@@ -168,7 +178,7 @@ def delete(product_id):
 @app.route("/check/<int:product_id>")
 @login_required
 def check_now(product_id):
-    products = get_products()
+    products = get_products(user_id=session.get("user_id"))
     product = next((p for p in products if p["id"] == product_id), None)
     if product:
         data = scrape_listing(product["url"])
@@ -183,7 +193,7 @@ def check_now(product_id):
 def export_csv(product_id):
     import csv, io
     from flask import Response
-    products = get_products()
+    products = get_products(user_id=session.get("user_id"))
     product = next((p for p in products if p["id"] == product_id), None)
     if not product:
         return redirect(url_for("index"))
@@ -203,7 +213,7 @@ def export_csv(product_id):
 def export_all_csv():
     import csv, io
     from flask import Response
-    products = get_products()
+    products = get_products(user_id=session.get("user_id"))
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Produto", "Data", "Preco (EUR)", "Objetivo (EUR)", "Abaixo Objetivo"])
@@ -220,7 +230,7 @@ def export_all_csv():
 @login_required
 def stats():
     from database import get_stats
-    return render_template("stats.html", stats=get_stats())
+    return render_template("stats.html", stats=get_stats(user_id=session.get("user_id")))
 
 
 @app.route("/settings")
