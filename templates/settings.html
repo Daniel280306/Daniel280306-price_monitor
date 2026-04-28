@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações — Price Monitor{% endblock %}
+
+{% block content %}
+<h1>Configurações</h1>
+<p class="subtitle">Gere as notificações e comportamento do monitor.</p>
+
+{% if success %}
+<div style="background:#1f2d1f;border:1px solid #4ade8033;color:#4ade80;padding:12px 16px;border-radius:6px;margin-bottom:20px;font-size:13px;">
+  ✅ {{ success }}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="error-msg">⚠️ {{ error }}</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+  <!-- Email -->
+  <div class="card">
+    <h2 style="margin-bottom:20px;">📧 Email</h2>
+    <form method="POST" action="/settings/email">
+      <div class="form-group">
+        <label>Email remetente (Gmail)</label>
+        <input type="email" name="email_sender" value="{{ config.EMAIL_SENDER }}" required>
+      </div>
+      <div class="form-group">
+        <label>App Password</label>
+        <input type="password" name="email_password" placeholder="16 caracteres" value="{{ config.EMAIL_PASSWORD }}">
+        <div style="font-size:11px;color:#6b7280;margin-top:6px;">Google Account → Segurança → App Passwords</div>
+      </div>
+      <div class="form-group">
+        <label>Email destinatário</label>
+        <input type="email" name="email_receiver" value="{{ config.EMAIL_RECEIVER }}" required>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Guardar</button>
+        <a href="/settings/test/email" class="btn btn-ghost">🧪 Testar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Telegram -->
+  <div class="card">
+    <h2 style="margin-bottom:20px;">📱 Telegram</h2>
+    <form method="POST" action="/settings/telegram">
+      <div class="form-group">
+        <label>Bot Token</label>
+        <input type="text" name="telegram_token" value="{{ config.TELEGRAM_TOKEN }}" placeholder="123456:ABC...">
+      </div>
+      <div class="form-group">
+        <label>Chat ID</label>
+        <input type="text" name="telegram_chat_id" value="{{ config.TELEGRAM_CHAT_ID }}" placeholder="6424326250">
+        <div style="font-size:11px;color:#6b7280;margin-top:6px;">
+          Obtém em: api.telegram.org/botTOKEN/getUpdates
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Alertas Telegram</label>
+        <select name="send_telegram" style="width:100%;background:#0f0f1a;border:1px solid #2d2d4e;color:#e8e8f0;padding:10px 14px;border-radius:6px;font-size:14px;">
+          <option value="true" {% if config.SEND_TELEGRAM_ALERTS %}selected{% endif %}>Ativado</option>
+          <option value="false" {% if not config.SEND_TELEGRAM_ALERTS %}selected{% endif %}>Desativado</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Guardar</button>
+        <a href="/settings/test/telegram" class="btn btn-ghost">🧪 Testar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Monitor -->
+  <div class="card">
+    <h2 style="margin-bottom:20px;">⏰ Monitor</h2>
+    <form method="POST" action="/settings/monitor">
+      <div class="form-group">
+        <label>Intervalo de verificação</label>
+        <select name="check_interval" style="width:100%;background:#0f0f1a;border:1px solid #2d2d4e;color:#e8e8f0;padding:10px 14px;border-radius:6px;font-size:14px;">
+          <option value="1800"  {% if config.CHECK_INTERVAL == 1800  %}selected{% endif %}>30 minutos</option>
+          <option value="3600"  {% if config.CHECK_INTERVAL == 3600  %}selected{% endif %}>1 hora</option>
+          <option value="7200"  {% if config.CHECK_INTERVAL == 7200  %}selected{% endif %}>2 horas</option>
+          <option value="21600" {% if config.CHECK_INTERVAL == 21600 %}selected{% endif %}>6 horas</option>
+          <option value="86400" {% if config.CHECK_INTERVAL == 86400 %}selected{% endif %}>1 dia</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Resumo diário</label>
+        <select name="send_daily" style="width:100%;background:#0f0f1a;border:1px solid #2d2d4e;color:#e8e8f0;padding:10px 14px;border-radius:6px;font-size:14px;">
+          <option value="true"  {% if config.SEND_DAILY_SUMMARY %}selected{% endif %}>Ativado</option>
+          <option value="false" {% if not config.SEND_DAILY_SUMMARY %}selected{% endif %}>Desativado</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Guardar</button>
+    </form>
+  </div>
+
+  <!-- Sobre -->
+  <div class="card">
+    <h2 style="margin-bottom:20px;">ℹ️ Sobre</h2>
+    <div style="color:#94a3b8;font-size:13px;line-height:2;">
+      <div>📦 <b style="color:#e8e8f0;">Versão:</b> 1.0.0</div>
+      <div>🐍 <b style="color:#e8e8f0;">Stack:</b> Python · Flask · SQLite</div>
+      <div>🌐 <b style="color:#e8e8f0;">Sites:</b> StandVirtual · CustoJusto · Imovirtual · AutoSapo</div>
+      <div>👤 <b style="color:#e8e8f0;">Autor:</b> Daniel Santos</div>
+    </div>
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
+      <a href="https://github.com/Daniel280306/Daniel280306-price_monitor" target="_blank" class="btn btn-ghost">
+        {} GitHub
+      </a>
+      <a href="https://daniel280306.github.io" target="_blank" class="btn btn-ghost">
+        🌐 Portfolio
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

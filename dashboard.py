@@ -152,3 +152,102 @@ if __name__ == "__main__":
     print("\n🚀 Dashboard iniciado!")
     print("   Acede em: http://localhost:5000\n")
     app.run(debug=True)
+
+
+@app.route("/settings")
+def settings():
+    import importlib, sys
+    if "config" in sys.modules:
+        importlib.reload(sys.modules["config"])
+    from config import (EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER,
+                        CHECK_INTERVAL, SEND_DAILY_SUMMARY)
+    try:
+        from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SEND_TELEGRAM_ALERTS
+    except ImportError:
+        TELEGRAM_TOKEN = TELEGRAM_CHAT_ID = ""
+        SEND_TELEGRAM_ALERTS = False
+    cfg = {
+        "EMAIL_SENDER": EMAIL_SENDER, "EMAIL_PASSWORD": EMAIL_PASSWORD,
+        "EMAIL_RECEIVER": EMAIL_RECEIVER, "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
+        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID, "SEND_TELEGRAM_ALERTS": SEND_TELEGRAM_ALERTS,
+        "CHECK_INTERVAL": CHECK_INTERVAL, "SEND_DAILY_SUMMARY": SEND_DAILY_SUMMARY,
+    }
+    return render_template("settings.html", config=cfg,
+                           success=request.args.get("success"),
+                           error=request.args.get("error"))
+
+
+def update_config_file(updates: dict):
+    import os, re
+    config_path = os.path.join(os.path.dirname(__file__), "src", "config.py")
+    with open(config_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    for key, value in updates.items():
+        if isinstance(value, bool):
+            new_val = str(value)
+        elif isinstance(value, int):
+            new_val = str(value)
+        else:
+            new_val = f'"{value}"'
+        content = re.sub(rf'{key}\s*=.*', f'{key} = {new_val}', content)
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+@app.route("/settings/email", methods=["POST"])
+def settings_email():
+    try:
+        update_config_file({
+            "EMAIL_SENDER": request.form["email_sender"],
+            "EMAIL_PASSWORD": request.form["email_password"],
+            "EMAIL_RECEIVER": request.form["email_receiver"],
+        })
+        return redirect(url_for("settings") + "?success=Configurações+de+email+guardadas!")
+    except Exception as e:
+        return redirect(url_for("settings") + f"?error={e}")
+
+
+@app.route("/settings/telegram", methods=["POST"])
+def settings_telegram():
+    try:
+        update_config_file({
+            "TELEGRAM_TOKEN": request.form["telegram_token"],
+            "TELEGRAM_CHAT_ID": request.form["telegram_chat_id"],
+            "SEND_TELEGRAM_ALERTS": request.form["send_telegram"] == "true",
+        })
+        return redirect(url_for("settings") + "?success=Configurações+de+Telegram+guardadas!")
+    except Exception as e:
+        return redirect(url_for("settings") + f"?error={e}")
+
+
+@app.route("/settings/monitor", methods=["POST"])
+def settings_monitor():
+    try:
+        update_config_file({
+            "CHECK_INTERVAL": int(request.form["check_interval"]),
+            "SEND_DAILY_SUMMARY": request.form["send_daily"] == "true",
+        })
+        return redirect(url_for("settings") + "?success=Configurações+do+monitor+guardadas!")
+    except Exception as e:
+        return redirect(url_for("settings") + f"?error={e}")
+
+
+@app.route("/settings/test/email")
+def test_email():
+    try:
+        from notifier import send_alert
+        send_alert("Teste", "https://example.com", 100, 100, None)
+        return redirect(url_for("settings") + "?success=Email+de+teste+enviado!")
+    except Exception as e:
+        return redirect(url_for("settings") + f"?error={e}")
+
+
+@app.route("/settings/test/telegram")
+def test_telegram():
+    try:
+        from telegram_notifier import send_telegram
+        from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
+        send_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, "🧪 <b>Teste Price Monitor</b> — Telegram ligado!")
+        return redirect(url_for("settings") + "?success=Mensagem+de+teste+enviada+no+Telegram!")
+    except Exception as e:
+        return redirect(url_for("settings") + f"?error={e}")
