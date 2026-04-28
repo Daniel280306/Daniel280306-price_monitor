@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Estatísticas — Price Monitor{% endblock %}
+
+{% block content %}
+<h1>Estatísticas</h1>
+<p class="subtitle">Resumo geral de todos os produtos monitorizados.</p>
+
+<!-- Cards de topo -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 32px;">
+  <div class="stat-card">
+    <div class="stat-label">Produtos</div>
+    <div class="stat-value">{{ stats.total_products }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Verificações totais</div>
+    <div class="stat-value">{{ stats.total_checks }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Abaixo do objetivo</div>
+    <div class="stat-value" style="color:{% if stats.below_target > 0 %}#f87171{% else %}#4ade80{% endif %}">
+      {{ stats.below_target }}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Taxa de sucesso</div>
+    <div class="stat-value" style="color:#a78bfa;">
+      {% if stats.total_products > 0 %}
+        {{ "%.0f"|format((stats.below_target / stats.total_products) * 100) }}%
+      {% else %}—{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Tabela detalhada -->
+{% if stats.products %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <div style="padding:20px 24px 12px;">
+    <h2 style="margin:0;">Detalhe por Produto</h2>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Preço Atual</th>
+          <th>Mínimo</th>
+          <th>Máximo</th>
+          <th>Objetivo</th>
+          <th>Poupança</th>
+          <th>Verificações</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in stats.products %}
+        <tr>
+          <td>
+            <a href="/product/{{ p.id }}" style="color:#00e5ff;text-decoration:none;">{{ p.name }}</a>
+          </td>
+          <td style="font-weight:600;">
+            {% if p.last_price %}{{ p.last_price }}€{% else %}—{% endif %}
+          </td>
+          <td style="color:#4ade80;">
+            {% if p.min_price %}{{ p.min_price }}€{% else %}—{% endif %}
+          </td>
+          <td style="color:#f87171;">
+            {% if p.max_price %}{{ p.max_price }}€{% else %}—{% endif %}
+          </td>
+          <td style="color:#94a3b8;">{{ p.target }}€</td>
+          <td>
+            {% if p.savings > 0 %}
+              <span style="color:#4ade80;font-weight:600;">-{{ p.savings }}€</span>
+            {% elif p.last_price %}
+              <span style="color:#f87171;">+{{ ((p.last_price - p.target)|abs)|round(2) }}€</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="color:#94a3b8;">{{ p.checks }}</td>
+          <td style="white-space:nowrap;">
+            {% if not p.last_price %}
+              <span class="badge badge-unknown">Não verificado</span>
+            {% elif p.below_target %}
+              <span class="badge badge-below">🔔 Atingido</span>
+            {% else %}
+              <span class="badge badge-above">A monitorizar</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Gráfico de barras — preço atual vs objetivo -->
+<div class="chart-container" style="margin-top:24px;">
+  <h2>Preço Atual vs Objetivo</h2>
+  <canvas id="compareChart" height="80"></canvas>
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="icon">📊</div>
+  <h3>Sem dados ainda</h3>
+  <p style="margin-bottom:24px;">Adiciona produtos e verifica os preços para ver estatísticas.</p>
+  <a href="/add" class="btn btn-primary">+ Adicionar Produto</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if stats.products %}
+const labels = {{ stats.products | map(attribute='name') | list | tojson }};
+const currentPrices = {{ stats.products | map(attribute='last_price') | list | tojson }};
+const targetPrices  = {{ stats.products | map(attribute='target') | list | tojson }};
+
+const ctx = document.getElementById('compareChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Preço Atual',
+        data: currentPrices,
+        backgroundColor: 'rgba(0,229,255,0.7)',
+        borderColor: '#00e5ff',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+      {
+        label: 'Objetivo',
+        data: targetPrices,
+        backgroundColor: 'rgba(248,113,113,0.3)',
+        borderColor: '#f87171',
+        borderWidth: 1,
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#94a3b8' } },
+      tooltip: {
+        callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}€` }
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#6b7280' }, grid: { color: '#1f1f30' } },
+      y: { ticks: { color: '#6b7280', callback: v => v + '€' }, grid: { color: '#1f1f30' } }
+    }
+  }
+});
+{% endif %}
+{% endblock %}

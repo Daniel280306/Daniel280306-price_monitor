@@ -111,3 +111,42 @@ def delete_product(product_id: int):
         conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
         conn.commit()
     print(f"[DB] Produto {product_id} removido.")
+
+
+def get_stats() -> dict:
+    """Retorna estatísticas gerais de todos os produtos."""
+    with get_connection() as conn:
+        total_products = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+        total_checks   = conn.execute("SELECT COUNT(*) FROM price_history").fetchone()[0]
+
+        rows = conn.execute("""
+            SELECT p.id, p.name, p.target_price,
+                   (SELECT price FROM price_history WHERE product_id = p.id ORDER BY checked_at DESC LIMIT 1) as last_price,
+                   (SELECT MIN(price) FROM price_history WHERE product_id = p.id) as min_price,
+                   (SELECT MAX(price) FROM price_history WHERE product_id = p.id) as max_price,
+                   (SELECT COUNT(*) FROM price_history WHERE product_id = p.id) as checks
+            FROM products p
+        """).fetchall()
+
+    products_stats = []
+    below_target = 0
+    for r in rows:
+        last, min_p, max_p = r[3], r[4], r[5]
+        is_below = bool(last and last <= r[2])
+        if is_below:
+            below_target += 1
+        products_stats.append({
+            "id": r[0], "name": r[1], "target": r[2],
+            "last_price": last, "min_price": min_p,
+            "max_price": max_p, "checks": r[6],
+            "below_target": is_below,
+            "savings": round(r[2] - last, 2) if last and last < r[2] else 0,
+            "variation": round(((last - min_p) / min_p) * 100, 1) if last and min_p and min_p > 0 else 0,
+        })
+
+    return {
+        "total_products": total_products,
+        "total_checks": total_checks,
+        "below_target": below_target,
+        "products": sorted(products_stats, key=lambda x: x["checks"], reverse=True),
+    }

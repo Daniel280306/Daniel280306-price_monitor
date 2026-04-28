@@ -101,6 +101,14 @@ def check_now(product_id):
     return redirect(url_for("product_detail", product_id=product_id))
 
 
+
+@app.route("/stats")
+def stats():
+    from database import get_stats
+    s = get_stats()
+    return render_template("stats.html", stats=s)
+
+
 if __name__ == "__main__":
     init_db()
     print("\n🚀 Dashboard iniciado!")
