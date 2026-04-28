@@ -1,4 +1,4 @@
-# 🔔 Price Monitor — Monitor de Preços OLX
+# 🔔 Price Monitor — Monitor de Preços
 
 Monitor automático de preços para anúncios do OLX Portugal.  
 Define um preço objetivo e recebe um **email de alerta** assim que o preço baixar.
@@ -7,7 +7,7 @@ Define um preço objetivo e recebe um **email de alerta** assim que o preço bai
 
 ## ✨ Funcionalidades
 
-- 🔍 Scraping automático de preços do OLX
+- 🔍 Scraping automático de preços 
 - 💾 Histórico de preços em base de dados SQLite
 - 📧 Alertas por email quando o preço atinge o objetivo
 - 📊 Resumo diário de todos os produtos monitorizados
