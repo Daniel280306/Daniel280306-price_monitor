@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,33 +8,77 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root[data-theme="dark"] {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --border: #2d2d4e;
+      --text: #e8e8f0;
+      --muted: #6b7280;
+      --accent: #00e5ff;
+      --card-bg: #1a1a2e;
+      --input-bg: #0f0f1a;
+      --tag-bg: #e8f0f5;
+      --tag-color: #2d6a8f;
+      --nav-bg: #1a1a2e;
+      --green: #4ade80;
+      --red: #f87171;
+      --purple: #a78bfa;
+      --chart-grid: #1f1f30;
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a1a2e;
+      --muted: #64748b;
+      --accent: #0284c7;
+      --card-bg: #ffffff;
+      --input-bg: #f8fafc;
+      --tag-bg: #e0f2fe;
+      --tag-color: #0284c7;
+      --nav-bg: #ffffff;
+      --green: #16a34a;
+      --red: #dc2626;
+      --purple: #7c3aed;
+      --chart-grid: #e2e8f0;
+    }
+
     body {
+      background: var(--bg);
+      color: var(--text);
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0f0f1a;
-      color: #e8e8f0;
       min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
     }
 
     nav {
-      background: #1a1a2e;
-      border-bottom: 1px solid #2d2d4e;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--border);
       padding: 16px 32px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
-    .nav-logo {
-      font-size: 18px;
-      font-weight: 700;
-      color: #00e5ff;
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .nav-logo span { color: var(--text); }
+
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+
+    .nav-link-ghost {
+      color: var(--muted);
       text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
     }
-
-    .nav-logo span { color: #fff; }
+    .nav-link-ghost:hover { color: var(--accent); }
 
     .nav-link {
-      background: #00e5ff;
+      background: var(--accent);
       color: #0f0f1a;
       padding: 8px 18px;
       border-radius: 6px;
@@ -43,181 +87,148 @@
       font-weight: 600;
     }
 
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 40px 24px;
+    /* Theme toggle */
+    .theme-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      transition: all 0.2s;
     }
 
-    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-    h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+    .theme-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: background 0.2s;
+    }
 
-    .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 32px; }
+    .theme-btn.active {
+      background: var(--accent);
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+    h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+
+    .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
 
     .card {
-      background: #1a1a2e;
-      border: 1px solid #2d2d4e;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
       margin-bottom: 16px;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, background 0.3s;
     }
 
-    .card:hover { border-color: #00e5ff44; }
+    .card:hover { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 16px;
-    }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .product-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
 
-    .product-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+    .badge { padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-above { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green); border: 1px solid color-mix(in srgb, var(--green) 30%, transparent); }
+    .badge-below { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); }
+    .badge-unknown { background: color-mix(in srgb, var(--muted) 10%, transparent); color: var(--muted); border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent); }
 
-    .badge {
-      padding: 4px 10px;
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+    .price-row { display: flex; gap: 24px; margin-bottom: 16px; }
+    .price-item label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
+    .price-value { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .price-target { font-size: 22px; font-weight: 700; color: var(--muted); }
 
-    .badge-above { background: #1f2d1f; color: #4ade80; border: 1px solid #4ade8033; }
-    .badge-below { background: #2d1f1f; color: #f87171; border: 1px solid #f8717133; }
-    .badge-unknown { background: #1f1f2d; color: #94a3b8; border: 1px solid #94a3b833; }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .price-row {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 16px;
-    }
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer; border: none; display: inline-block; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #0f0f1a; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-    .price-item label {
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .price-value { font-size: 22px; font-weight: 700; color: #00e5ff; }
-    .price-target { font-size: 22px; font-weight: 700; color: #94a3b8; }
-
-    .card-actions { display: flex; gap: 8px; }
-
-    .btn {
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      display: inline-block;
-    }
-
-    .btn-primary { background: #00e5ff; color: #0f0f1a; }
-    .btn-primary:hover { background: #fff; }
-    .btn-ghost { background: transparent; color: #6b7280; border: 1px solid #2d2d4e; }
-    .btn-ghost:hover { border-color: #00e5ff; color: #00e5ff; }
-
-    .empty-state {
-      text-align: center;
-      padding: 80px 24px;
-      color: #6b7280;
-    }
-
+    .empty-state { text-align: center; padding: 80px 24px; color: var(--muted); }
     .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
-    .empty-state h3 { font-size: 20px; color: #e8e8f0; margin-bottom: 8px; }
+    .empty-state h3 { font-size: 20px; color: var(--text); margin-bottom: 8px; }
 
-    /* Form */
     .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
-    .form-group input {
+    .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .form-group input, .form-group select {
       width: 100%;
-      background: #0f0f1a;
-      border: 1px solid #2d2d4e;
-      color: #e8e8f0;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
       padding: 10px 14px;
       border-radius: 6px;
       font-size: 14px;
       outline: none;
+      transition: border-color 0.2s;
     }
-    .form-group input:focus { border-color: #00e5ff; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
 
-    .error-msg {
-      background: #2d1f1f;
-      border: 1px solid #f8717133;
-      color: #f87171;
-      padding: 12px 16px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      font-size: 13px;
-    }
+    .error-msg { background: color-mix(in srgb, var(--red) 10%, transparent); border: 1px solid color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
 
-    /* Chart */
-    .chart-container {
-      background: #1a1a2e;
-      border: 1px solid #2d2d4e;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
+    .chart-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
 
-    /* History table */
     table { width: 100%; border-collapse: collapse; }
-    th {
-      text-align: left;
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 8px 12px;
-      border-bottom: 1px solid #2d2d4e;
-    }
-    td { padding: 12px; border-bottom: 1px solid #1f1f30; font-size: 14px; }
+    th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    td { padding: 12px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); font-size: 14px; color: var(--text); }
     tr:last-child td { border-bottom: none; }
 
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #6b7280;
-      text-decoration: none;
-      font-size: 13px;
-      margin-bottom: 24px;
-    }
-    .back-link:hover { color: #00e5ff; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 13px; margin-bottom: 24px; }
+    .back-link:hover { color: var(--accent); }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: #1a1a2e;
-      border: 1px solid #2d2d4e;
-      border-radius: 10px;
-      padding: 20px;
-    }
-
-    .stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-    .stat-value { font-size: 26px; font-weight: 700; color: #00e5ff; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .stat-value { font-size: 26px; font-weight: 700; color: var(--accent); }
   </style>
 </head>
 <body>
   <nav>
     <a href="/" class="nav-logo">🔔 Price<span>Monitor</span></a>
-    <a href="/stats" style="color:#94a3b8;text-decoration:none;font-size:13px;margin-right:16px;">📊 Estatísticas</a><a href="/settings" style="color:#94a3b8;text-decoration:none;font-size:13px;margin-right:16px;">⚙️ Configurações</a><a href="/add" class="nav-link">+ Adicionar Produto</a>
+    <div class="nav-right">
+      <a href="/stats" class="nav-link-ghost">📊 Estatísticas</a>
+      <a href="/settings" class="nav-link-ghost">⚙️ Configurações</a>
+      <div class="theme-toggle" onclick="toggleTheme()">
+        <button class="theme-btn" id="btn-dark" onclick="setTheme('dark')">🌙</button>
+        <button class="theme-btn" id="btn-light" onclick="setTheme('light')">☀️</button>
+      </div>
+      <a href="/add" class="nav-link">+ Produto</a>
+    </div>
   </nav>
 
   <div class="container">
     {% block content %}{% endblock %}
   </div>
+
+  <script>
+    function setTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("theme", theme);
+      document.getElementById("btn-dark").classList.toggle("active", theme === "dark");
+      document.getElementById("btn-light").classList.toggle("active", theme === "light");
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      setTheme(current === "dark" ? "light" : "dark");
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem("theme") || "dark";
+    setTheme(saved);
+  </script>
 
   <script>{% block scripts %}{% endblock %}</script>
 </body>
