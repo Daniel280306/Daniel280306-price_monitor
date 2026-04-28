@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Login — Price Monitor{% endblock %}
+
+{% block content %}
+<div style="max-width:400px;margin:80px auto;">
+  <div style="text-align:center;margin-bottom:32px;">
+    <div style="font-size:48px;margin-bottom:12px;">🔔</div>
+    <h1 style="margin-bottom:4px;">Price Monitor</h1>
+    <p class="subtitle" style="margin:0;">Introduz a password para aceder ao dashboard.</p>
+  </div>
+
+  {% if error %}
+  <div class="error-msg">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="••••••••" autofocus required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">
+        Entrar →
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

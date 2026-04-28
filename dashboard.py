@@ -7,14 +7,49 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from functools import wraps
 from database import init_db, add_product, get_products, get_price_history, get_last_price, update_product, delete_product
 from scraper import scrape_listing
 
 app = Flask(__name__)
+app.secret_key = "price_monitor_secret_2026"  # Muda isto para algo único!
+
+# ── PASSWORD ──────────────────────────────────────────────────────────────────
+DASHBOARD_PASSWORD = "admin123"  # Muda esta password!
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
 
 
+# ── AUTH ──────────────────────────────────────────────────────────────────────
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("logged_in"):
+        return redirect(url_for("index"))
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == DASHBOARD_PASSWORD:
+            session["logged_in"] = True
+            return redirect(url_for("index"))
+        error = "Password incorreta. Tenta novamente."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+# ── ROTAS PRINCIPAIS ──────────────────────────────────────────────────────────
 @app.route("/")
+@login_required
 def index():
     products = get_products()
     for p in products:
@@ -24,6 +59,7 @@ def index():
 
 
 @app.route("/product/<int:product_id>")
+@login_required
 def product_detail(product_id):
     products = get_products()
     product = next((p for p in products if p["id"] == product_id), None)
@@ -34,6 +70,7 @@ def product_detail(product_id):
 
 
 @app.route("/api/history/<int:product_id>")
+@login_required
 def api_history(product_id):
     history = get_price_history(product_id)
     return jsonify([
@@ -43,6 +80,7 @@ def api_history(product_id):
 
 
 @app.route("/add", methods=["GET", "POST"])
+@login_required
 def add():
     error = None
     if request.method == "POST":
@@ -61,12 +99,12 @@ def add():
 
 
 @app.route("/edit/<int:product_id>", methods=["GET", "POST"])
+@login_required
 def edit(product_id):
     products = get_products()
     product = next((p for p in products if p["id"] == product_id), None)
     if not product:
         return redirect(url_for("index"))
-
     error = None
     if request.method == "POST":
         name         = request.form.get("name", "").strip()
@@ -79,17 +117,18 @@ def edit(product_id):
                 return redirect(url_for("product_detail", product_id=product_id))
             except ValueError:
                 error = "Preço inválido."
-
     return render_template("edit.html", product=product, error=error)
 
 
 @app.route("/delete/<int:product_id>", methods=["POST"])
+@login_required
 def delete(product_id):
     delete_product(product_id)
     return redirect(url_for("index"))
 
 
 @app.route("/check/<int:product_id>")
+@login_required
 def check_now(product_id):
     products = get_products()
     product = next((p for p in products if p["id"] == product_id), None)
@@ -101,10 +140,9 @@ def check_now(product_id):
     return redirect(url_for("product_detail", product_id=product_id))
 
 
-
 @app.route("/export/<int:product_id>")
+@login_required
 def export_csv(product_id):
-    """Exporta o historico de um produto para CSV."""
     import csv, io
     from flask import Response
     products = get_products()
@@ -123,8 +161,8 @@ def export_csv(product_id):
 
 
 @app.route("/export/all")
+@login_required
 def export_all_csv():
-    """Exporta o historico de todos os produtos para CSV."""
     import csv, io
     from flask import Response
     products = get_products()
@@ -141,18 +179,19 @@ def export_all_csv():
 
 
 @app.route("/stats")
+@login_required
 def stats():
     from database import get_stats
     s = get_stats()
     return render_template("stats.html", stats=s)
 
 
-
 @app.route("/settings")
+@login_required
 def settings():
-    import importlib, sys
-    if "config" in sys.modules:
-        importlib.reload(sys.modules["config"])
+    import importlib, sys as _sys
+    if "config" in _sys.modules:
+        importlib.reload(_sys.modules["config"])
     from config import (EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER,
                         CHECK_INTERVAL, SEND_DAILY_SUMMARY)
     try:
@@ -172,7 +211,7 @@ def settings():
 
 
 def update_config_file(updates: dict):
-    import os, re
+    import re
     config_path = os.path.join(os.path.dirname(__file__), "src", "config.py")
     with open(config_path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -189,6 +228,7 @@ def update_config_file(updates: dict):
 
 
 @app.route("/settings/email", methods=["POST"])
+@login_required
 def settings_email():
     try:
         update_config_file({
@@ -202,6 +242,7 @@ def settings_email():
 
 
 @app.route("/settings/telegram", methods=["POST"])
+@login_required
 def settings_telegram():
     try:
         update_config_file({
@@ -215,6 +256,7 @@ def settings_telegram():
 
 
 @app.route("/settings/monitor", methods=["POST"])
+@login_required
 def settings_monitor():
     try:
         update_config_file({
@@ -227,6 +269,7 @@ def settings_monitor():
 
 
 @app.route("/settings/test/email")
+@login_required
 def test_email():
     try:
         from notifier import send_alert
@@ -237,6 +280,7 @@ def test_email():
 
 
 @app.route("/settings/test/telegram")
+@login_required
 def test_telegram():
     try:
         from telegram_notifier import send_telegram
@@ -247,11 +291,11 @@ def test_telegram():
         return redirect(url_for("settings") + f"?error={e}")
 
 
-
 if __name__ == "__main__":
+    os.makedirs("data", exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
     init_db()
     print("\n🚀 Dashboard iniciado!")
-    print("   Acede em: http://localhost:5000\n")
+    print("   Acede em: http://localhost:5000")
+    print(f"   Password: {DASHBOARD_PASSWORD}\n")
     app.run(debug=True)
-
-
