@@ -102,6 +102,44 @@ def check_now(product_id):
 
 
 
+@app.route("/export/<int:product_id>")
+def export_csv(product_id):
+    """Exporta o historico de um produto para CSV."""
+    import csv, io
+    from flask import Response
+    products = get_products()
+    product = next((p for p in products if p["id"] == product_id), None)
+    if not product:
+        return redirect(url_for("index"))
+    history = get_price_history(product_id)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Data", "Preco (EUR)", "Titulo", "Objetivo (EUR)"])
+    for h in reversed(history):
+        writer.writerow([h["checked_at"][:16], h["price"], h["title"], product["target_price"]])
+    filename = f"historico_{product['name'].replace(' ', '_')}.csv"
+    return Response(output.getvalue(), mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+@app.route("/export/all")
+def export_all_csv():
+    """Exporta o historico de todos os produtos para CSV."""
+    import csv, io
+    from flask import Response
+    products = get_products()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Produto", "Data", "Preco (EUR)", "Objetivo (EUR)", "Abaixo Objetivo"])
+    for p in products:
+        history = get_price_history(p["id"])
+        for h in reversed(history):
+            below = "Sim" if h["price"] <= p["target_price"] else "Nao"
+            writer.writerow([p["name"], h["checked_at"][:16], h["price"], p["target_price"], below])
+    return Response(output.getvalue(), mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=historico_completo.csv"})
+
+
 @app.route("/stats")
 def stats():
     from database import get_stats
