@@ -1,59 +1,79 @@
 # 🔔 Price Monitor — Monitor de Preços
 
-Monitor automático de preços para anúncios do OLX Portugal.  
-Define um preço objetivo e recebe um **email de alerta** assim que o preço baixar.
+Monitor automático de preços para anúncios portugueses.  
+Define um preço objetivo e recebe alertas por **email e Telegram** assim que o preço baixar.
 
 ---
 
 ## ✨ Funcionalidades
 
-- 🔍 Scraping automático de preços 
+- 🔍 Scraping automático de preços (4 sites suportados)
 - 💾 Histórico de preços em base de dados SQLite
 - 📧 Alertas por email quando o preço atinge o objetivo
-- 📊 Resumo diário de todos os produtos monitorizados
-- ⏰ Loop automático configurável (ex: verificar a cada hora)
+- 📱 Notificações por Telegram em tempo real
+- 📊 Dashboard web com gráficos de histórico
+- ✏️ Adicionar, editar e apagar produtos
+- ⏰ Agendamento automático no Windows (Task Scheduler)
+- 🔁 Loop contínuo configurável
+
+---
+
+## 🌐 Sites Suportados
+
+| Site | Domínio |
+|------|---------|
+| StandVirtual | standvirtual.com |
+| CustoJusto | custojusto.pt |
+| Imovirtual | imovirtual.com |
+| AutoSapo | autosapo.pt |
 
 ---
 
 ## 🚀 Instalação
 
 ```bash
-# 1. Clona o repositório
-git clone https://github.com/Daniel280306/price-monitor
-cd price-monitor
-
-# 2. Instala as dependências
-pip install -r requirements.txt
-
-# 3. Configura o email
-# Edita src/config.py com o teu email e App Password do Gmail
+git clone https://github.com/Daniel280306/Daniel280306-price_monitor
+cd Daniel280306-price_monitor
+py -m pip install -r requirements.txt
 ```
 
-### Configurar App Password do Gmail
-1. Google Account → Segurança → Verificação em 2 etapas
-2. App Passwords → Gera uma password para "Mail"
-3. Cola em `src/config.py`
+### Configurar `src/config.py`
+
+```python
+# Email (Gmail App Password)
+EMAIL_SENDER   = "o_teu_email@gmail.com"
+EMAIL_PASSWORD = "app_password_16_chars"
+EMAIL_RECEIVER = "o_teu_email@gmail.com"
+
+# Telegram
+TELEGRAM_TOKEN   = "token_do_botfather"
+TELEGRAM_CHAT_ID = "o_teu_chat_id"
+SEND_TELEGRAM_ALERTS = True
+```
 
 ---
 
-## 📖 Uso
+## 📖 Uso — Terminal
 
 ```bash
-# Adicionar um produto para monitorizar
-python monitor.py add
-
-# Verificar preços agora (uma vez)
-python monitor.py check
-
-# Correr em loop contínuo (verifica a cada hora)
-python monitor.py run
-
-# Ver todos os produtos monitorizados
-python monitor.py list
-
-# Ver histórico de preços
-python monitor.py history
+py monitor.py add       # Adiciona um produto
+py monitor.py check     # Verifica preços agora
+py monitor.py run       # Loop contínuo (verifica a cada hora)
+py monitor.py list      # Lista produtos monitorizados
+py monitor.py history   # Histórico de preços
+py monitor.py telegram  # Testa notificação Telegram
 ```
+
+## 🖥️ Uso — Dashboard Web
+
+```bash
+py dashboard.py
+# Acede em http://localhost:5000
+```
+
+## ⏰ Agendamento Automático Windows
+
+Clica com o botão direito em `schedule_setup.bat` → **Executar como administrador**
 
 ---
 
@@ -61,16 +81,26 @@ python monitor.py history
 
 ```
 price-monitor/
-├── monitor.py          # Script principal (ponto de entrada)
-├── requirements.txt    # Dependências Python
+├── monitor.py              # CLI — ponto de entrada
+├── dashboard.py            # Dashboard web Flask
+├── schedule_setup.bat      # Ativa agendamento Windows
+├── schedule_remove.bat     # Remove agendamento Windows
+├── requirements.txt
 ├── src/
-│   ├── config.py       # Configurações (email, intervalos)
-│   ├── database.py     # Gestão da base de dados SQLite
-│   ├── scraper.py      # Scraping de preços do OLX
-│   └── notifier.py     # Envio de alertas por email
-├── data/
-│   └── prices.db       # Base de dados (gerada automaticamente)
-└── logs/               # Logs de execução
+│   ├── config.py           # Configurações (não incluído no git)
+│   ├── config.example.py   # Exemplo de configuração
+│   ├── database.py         # Base de dados SQLite
+│   ├── scraper.py          # Scraping de preços
+│   ├── notifier.py         # Alertas por email
+│   └── telegram_notifier.py # Alertas por Telegram
+├── templates/              # HTML para o dashboard
+│   ├── base.html
+│   ├── index.html
+│   ├── product.html
+│   ├── add.html
+│   └── edit.html
+├── data/                   # Base de dados (gerada automaticamente)
+└── logs/                   # Logs de execução
 ```
 
 ---
@@ -78,10 +108,12 @@ price-monitor/
 ## 🛠️ Stack
 
 - **Python 3.10+**
+- **Flask** — dashboard web
 - **BeautifulSoup4** — parsing HTML
 - **Requests** — HTTP requests
 - **SQLite** — base de dados local
-- **smtplib** — envio de emails
+- **smtplib** — alertas por email
+- **Telegram Bot API** — notificações mobile
 
 ---
 
