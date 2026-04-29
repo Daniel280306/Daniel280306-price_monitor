@@ -3,8 +3,13 @@ dashboard.py — Dashboard web para o Price Monitor
 Corre com: py dashboard.py
 Acede em: http://localhost:5000
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+import sys
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+sys.path.insert(0, os.path.join(BASE_DIR, "src"))
+os.chdir(BASE_DIR)
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from functools import wraps
@@ -232,28 +237,56 @@ def stats():
     from database import get_stats
     return render_template("stats.html", stats=get_stats(user_id=session.get("user_id")))
 
-
 @app.route("/settings")
 @login_required
 def settings():
-    import importlib, sys as _sys
+    import importlib
+    import sys as _sys
+
+    # como estás a usar sys.path.insert(... "src"),
+    # o import correto é "config" e não "src.config"
+
     if "config" in _sys.modules:
         importlib.reload(_sys.modules["config"])
-    from config import (EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER, CHECK_INTERVAL, SEND_DAILY_SUMMARY)
+
+    from config import (
+        EMAIL_SENDER,
+        EMAIL_PASSWORD,
+        EMAIL_RECEIVER,
+        CHECK_INTERVAL,
+        SEND_DAILY_SUMMARY,
+    )
+
     try:
-        from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SEND_TELEGRAM_ALERTS
+        from config import (
+            TELEGRAM_TOKEN,
+            TELEGRAM_CHAT_ID,
+            SEND_TELEGRAM_ALERTS,
+        )
     except ImportError:
-        TELEGRAM_TOKEN = TELEGRAM_CHAT_ID = ""
+        TELEGRAM_TOKEN = ""
+        TELEGRAM_CHAT_ID = ""
         SEND_TELEGRAM_ALERTS = False
+
     cfg = {
-        "EMAIL_SENDER": EMAIL_SENDER, "EMAIL_PASSWORD": EMAIL_PASSWORD,
-        "EMAIL_RECEIVER": EMAIL_RECEIVER, "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
-        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID, "SEND_TELEGRAM_ALERTS": SEND_TELEGRAM_ALERTS,
-        "CHECK_INTERVAL": CHECK_INTERVAL, "SEND_DAILY_SUMMARY": SEND_DAILY_SUMMARY,
+        "EMAIL_SENDER": EMAIL_SENDER,
+        "EMAIL_PASSWORD": EMAIL_PASSWORD,
+        "EMAIL_RECEIVER": EMAIL_RECEIVER,
+        "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
+        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
+        "SEND_TELEGRAM_ALERTS": SEND_TELEGRAM_ALERTS,
+        "CHECK_INTERVAL": CHECK_INTERVAL,
+        "SEND_DAILY_SUMMARY": SEND_DAILY_SUMMARY,
     }
-    return render_template("settings.html", config=cfg,
-                           success=request.args.get("success"),
-                           error=request.args.get("error"))
+
+    return render_template(
+        "settings.html",
+        config=cfg,
+        success=request.args.get("success"),
+        error=request.args.get("error"),
+    )
+
+
 
 
 def update_config_file(updates: dict):
@@ -322,11 +355,21 @@ def test_telegram():
     try:
         from telegram_notifier import send_telegram
         from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-        send_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, "🧪 <b>Teste Price Monitor</b> — OK!")
-        return redirect(url_for("settings") + "?success=Telegram+OK!")
-    except Exception as e:
-        return redirect(url_for("settings") + f"?error={e}")
 
+        send_telegram(
+            TELEGRAM_TOKEN,
+            TELEGRAM_CHAT_ID,
+            "🧪 <b>Teste Price Monitor</b> — OK!"
+        )
+
+        return redirect(
+            url_for("settings") + "?success=Telegram+OK!"
+        )
+
+    except Exception as e:
+        return redirect(
+            url_for("settings") + f"?error={e}"
+        )
 
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
